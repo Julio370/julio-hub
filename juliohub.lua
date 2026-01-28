@@ -307,10 +307,10 @@ end
 
 close.MouseButton1Click:Connect(minimizeHub)
 
--- TECLA J para abrir/cerrar
+-- TECLA Z para abrir/cerrar
 UIS.InputBegan:Connect(function(input, gameProcessed)
 	if gameProcessed then return end
-	if input.KeyCode == Enum.KeyCode.J then
+	if input.KeyCode == Enum.KeyCode.Z then
 		if hubContainer.Visible then
 			minimizeHub()
 		else
@@ -323,3 +323,4 @@ UIS.InputBegan:Connect(function(input, gameProcessed)
 		end
 	end
 end)
+
