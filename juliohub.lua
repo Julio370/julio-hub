@@ -1,9 +1,10 @@
 local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
 local player = Players.LocalPlayer
 
--- GUI
+-- === GUI Principal ===
 local gui = Instance.new("ScreenGui")
 gui.Name = "JulioHubGUI"
 gui.ResetOnSpawn = false
@@ -109,7 +110,9 @@ content.Position = UDim2.new(0,140,0,40)
 content.BackgroundColor3 = Color3.fromRGB(20,23,30)
 content.Parent = hub
 
--- DUPE button
+local spacingButtons = 10 -- distancia entre botones
+
+-- === DUPE Button ===
 local dupe = Instance.new("TextButton")
 dupe.Size = UDim2.new(1,-30,0,45)
 dupe.Position = UDim2.new(0,15,0,0)
@@ -132,6 +135,7 @@ end)
 dupe.MouseLeave:Connect(function()
 	TweenService:Create(dupe, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(35,40,55), Size = UDim2.new(1,-30,0,45)}):Play()
 end)
+
 dupe.MouseButton1Click:Connect(function()
 	local char = player.Character
 	if not char then return end
@@ -144,26 +148,22 @@ dupe.MouseButton1Click:Connect(function()
 			end
 		end
 		clone.Parent = player.Backpack
-
 		local highlight = Instance.new("Highlight")
 		highlight.Adornee = clone:FindFirstChildWhichIsA("BasePart") or clone
 		highlight.FillColor = Color3.fromRGB(100,200,255)
 		highlight.FillTransparency = 0.5
 		highlight.OutlineTransparency = 1
 		highlight.Parent = clone
-
 		print("Brainroot duplicado (solo visual)")
 	else
 		print("No tienes ninguna tool equipada")
 	end
 end)
 
--- =====================================
--- BOTÓN TELEPORT
--- =====================================
+-- === TELEPORT Button ===
 local tpButton = Instance.new("TextButton")
 tpButton.Size = dupe.Size
-tpButton.Position = UDim2.new(0,15,0,dupe.Position.Y.Offset + dupe.Size.Y.Offset + 10)
+tpButton.Position = UDim2.new(0,15,0,dupe.Position.Y.Offset + dupe.Size.Y.Offset + spacingButtons)
 tpButton.Text = "TELEPORT"
 tpButton.Font = Enum.Font.GothamBlack
 tpButton.TextSize = 18
@@ -184,22 +184,7 @@ tpButton.MouseLeave:Connect(function()
 	TweenService:Create(tpButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(35,40,55), Size = UDim2.new(1,-30,0,45)}):Play()
 end)
 
--- =====================================
--- TELEPORT FUNC
--- =====================================
-local function getChar()
-	return player.Character or player.CharacterAdded:Wait()
-end
-
-local function teleportTo(pos)
-	local char = getChar()
-	local hrp = char:WaitForChild("HumanoidRootPart")
-	hrp.CFrame = CFrame.new(pos.X, pos.Y, pos.Z)
-end
-
--- =====================================
--- AREAS Y BOTONES COMPACTOS
--- =====================================
+-- === TELEPORT Areas ===
 local areas = {
     {name="Common",     pos=Vector3.new(206,  -2.70, 0), color=Color3.fromRGB(160,160,160)},
     {name="Uncommon",   pos=Vector3.new(290,  -2.70, 0), color=Color3.fromRGB(80,255,120)},
@@ -215,10 +200,11 @@ local areas = {
 local areaPanel = Instance.new("Frame")
 areaPanel.Parent = content
 areaPanel.Size = UDim2.new(1,-30,0,0)
-areaPanel.Position = UDim2.new(0,15,0,tpButton.Position.Y.Offset + tpButton.Size.Y.Offset + 10)
+areaPanel.Position = UDim2.new(0,15,0,tpButton.Position.Y.Offset + tpButton.Size.Y.Offset + spacingButtons)
 areaPanel.BackgroundColor3 = Color3.fromRGB(0,0,0)
 areaPanel.BorderSizePixel = 0
 areaPanel.ClipsDescendants = true
+areaPanel.ZIndex = 2
 
 local areaButtons = {}
 local buttonHeight = 28
@@ -231,11 +217,12 @@ for i, area in ipairs(areas) do
 	btn.Position = UDim2.new(0,0,0,(i-1)*(buttonHeight + spacing))
 	btn.Text = area.name:upper()
 	btn.Font = Enum.Font.Gotham
-	btn.TextSize = 12
+	btn.TextSize = 14
 	btn.TextColor3 = area.color
 	btn.BackgroundColor3 = Color3.fromRGB(20,20,20)
 	btn.BorderSizePixel = 0
 	btn.AutoButtonColor = false
+	btn.ZIndex = 2
 
 	local corner = Instance.new("UICorner")
 	corner.CornerRadius = UDim.new(0,6)
@@ -257,13 +244,14 @@ for i, area in ipairs(areas) do
 	end)
 
 	btn.MouseButton1Click:Connect(function()
-		teleportTo(area.pos)
+		local char = player.Character or player.CharacterAdded:Wait()
+		local hrp = char:WaitForChild("HumanoidRootPart")
+		hrp.CFrame = CFrame.new(area.pos)
 	end)
 
 	table.insert(areaButtons, btn)
 end
 
--- Toggle desplegar/ocultar
 local areaVisible = false
 tpButton.MouseButton1Click:Connect(function()
 	areaVisible = not areaVisible
@@ -271,9 +259,7 @@ tpButton.MouseButton1Click:Connect(function()
 	TweenService:Create(areaPanel, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = UDim2.new(1,-30,0,targetHeight)}):Play()
 end)
 
--- =====================================
--- MINIMIZAR Y TECLA J (CORREGIDO)
--- =====================================
+-- === MINIMIZAR HUB ===
 local minimizedButton
 local function createMinimizedButton()
 	if minimizedButton then return end
@@ -294,7 +280,7 @@ local function createMinimizedButton()
 
 	minimizedButton.MouseButton1Click:Connect(function()
 		hubContainer.Visible = true
-		hubContainer.Size = UDim2.new(0,500,0,330) -- tamaño original
+		hubContainer.Size = UDim2.new(0,500,0,330)
 		minimizedButton:Destroy()
 		minimizedButton = nil
 	end)
@@ -306,8 +292,6 @@ local function minimizeHub()
 end
 
 close.MouseButton1Click:Connect(minimizeHub)
-
--- TECLA Z para abrir/cerrar
 UIS.InputBegan:Connect(function(input, gameProcessed)
 	if gameProcessed then return end
 	if input.KeyCode == Enum.KeyCode.Z then
@@ -316,7 +300,7 @@ UIS.InputBegan:Connect(function(input, gameProcessed)
 		else
 			if minimizedButton then
 				hubContainer.Visible = true
-				hubContainer.Size = UDim2.new(0,500,0,330) -- tamaño original
+				hubContainer.Size = UDim2.new(0,500,0,330)
 				minimizedButton:Destroy()
 				minimizedButton = nil
 			end
@@ -324,3 +308,109 @@ UIS.InputBegan:Connect(function(input, gameProcessed)
 	end
 end)
 
+-- === ANTI-AFK Futurista ===
+local antiAFKEnabled = true
+local antiAFKGui, antiAFKFrame, antiAFKCircle, antiAFKLabel
+
+local function createAntiAFKGui()
+	if antiAFKGui then return end
+	antiAFKGui = Instance.new("ScreenGui")
+	antiAFKGui.Name = "AntiAFKGui"
+	antiAFKGui.ResetOnSpawn = false
+	antiAFKGui.Parent = player:WaitForChild("PlayerGui")
+
+	antiAFKFrame = Instance.new("Frame")
+	antiAFKFrame.Size = UDim2.new(0,220,0,30)
+	antiAFKFrame.Position = UDim2.new(0.5,-110,0,10)
+	antiAFKFrame.BackgroundColor3 = Color3.fromRGB(20,20,20)
+	antiAFKFrame.BorderSizePixel = 0
+	antiAFKFrame.Parent = antiAFKGui
+
+	local frameCorner = Instance.new("UICorner")
+	frameCorner.CornerRadius = UDim.new(0,10)
+	frameCorner.Parent = antiAFKFrame
+
+	antiAFKCircle = Instance.new("Frame")
+	antiAFKCircle.Size = UDim2.new(0,16,0,16)
+	antiAFKCircle.Position = UDim2.new(0,8,0.5,-8)
+	antiAFKCircle.BackgroundColor3 = Color3.fromRGB(0,170,255)
+	antiAFKCircle.BorderSizePixel = 0
+	antiAFKCircle.Parent = antiAFKFrame
+
+	local circleCorner = Instance.new("UICorner")
+	circleCorner.CornerRadius = UDim.new(1,0)
+	circleCorner.Parent = antiAFKCircle
+
+	local glow = Instance.new("UIStroke")
+	glow.Parent = antiAFKCircle
+	glow.Color = Color3.fromRGB(0,255,255)
+	glow.Thickness = 2
+	glow.Transparency = 0.3
+
+	antiAFKLabel = Instance.new("TextLabel")
+	antiAFKLabel.Size = UDim2.new(1,-32,1,0)
+	antiAFKLabel.Position = UDim2.new(0,28,0,0)
+	antiAFKLabel.BackgroundTransparency = 1
+	antiAFKLabel.TextColor3 = Color3.fromRGB(0,170,255)
+	antiAFKLabel.Font = Enum.Font.GothamBold
+	antiAFKLabel.TextSize = 14
+	antiAFKLabel.TextXAlignment = Enum.TextXAlignment.Left
+	antiAFKLabel.TextStrokeTransparency = 0.5
+	antiAFKLabel.Parent = antiAFKFrame
+end
+
+local function updateAntiGUI()
+	if antiAFKEnabled then
+		antiAFKLabel.Text = "ANTI-AFK ACTIVO"
+		antiAFKCircle.BackgroundColor3 = Color3.fromRGB(0,170,255)
+		antiAFKLabel.TextColor3 = Color3.fromRGB(0,170,255)
+	else
+		antiAFKLabel.Text = "ANTI-AFK INACTIVO"
+		antiAFKCircle.BackgroundColor3 = Color3.fromRGB(255,0,0)
+		antiAFKLabel.TextColor3 = Color3.fromRGB(255,0,0)
+	end
+end
+
+createAntiAFKGui()
+updateAntiGUI()
+
+-- Botón Anti-AFK justo debajo del TP
+local antiButton = Instance.new("TextButton")
+antiButton.Size = dupe.Size
+antiButton.Position = UDim2.new(0,15,0,tpButton.Position.Y.Offset + tpButton.Size.Y.Offset + spacingButtons)
+antiButton.Text = "ANTI-AFK"
+antiButton.Font = Enum.Font.GothamBlack
+antiButton.TextSize = 18
+antiButton.TextColor3 = Color3.fromRGB(255,255,255)
+antiButton.BackgroundColor3 = Color3.fromRGB(35,40,55)
+antiButton.BorderSizePixel = 0
+antiButton.AutoButtonColor = false
+antiButton.Parent = content
+
+local antiCorner = Instance.new("UICorner")
+antiCorner.CornerRadius = UDim.new(0,10)
+antiCorner.Parent = antiButton
+
+antiButton.MouseEnter:Connect(function()
+	TweenService:Create(antiButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(60,120,255), Size = UDim2.new(1,-25,0,50)}):Play()
+end)
+antiButton.MouseLeave:Connect(function()
+	TweenService:Create(antiButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(35,40,55), Size = UDim2.new(1,-30,0,45)}):Play()
+end)
+
+antiButton.MouseButton1Click:Connect(function()
+	antiAFKEnabled = not antiAFKEnabled
+	updateAntiGUI()
+end)
+
+-- Anti-AFK loop
+spawn(function()
+	while true do
+		if antiAFKEnabled then
+			local VirtualUser = game:GetService("VirtualUser")
+			VirtualUser:CaptureController()
+			VirtualUser:ClickButton2(Vector2.new())
+		end
+		wait(30)
+	end
+end)
