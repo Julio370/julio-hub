@@ -10,32 +10,49 @@ gui.Name = "JulioHubGUI"
 gui.ResetOnSpawn = false
 gui.Parent = player:WaitForChild("PlayerGui")
 
--- Hub principal
+-- Hub container
 local hubContainer = Instance.new("Frame")
 hubContainer.Size = UDim2.new(0,500,0,330)
-hubContainer.Position = UDim2.new(0.5,-250,0.25,0)
+hubContainer.Position = UDim2.new(0.5,-250,0.5,-165)
 hubContainer.BackgroundColor3 = Color3.fromRGB(18,20,25)
 hubContainer.BorderSizePixel = 0
+hubContainer.Visible = true
 hubContainer.Parent = gui
 
 local hubCorner = Instance.new("UICorner")
-hubCorner.CornerRadius = UDim.new(0,20)
+hubCorner.CornerRadius = UDim.new(0,10)
 hubCorner.Parent = hubContainer
 
--- Hub interno
-local hub = Instance.new("Frame")
-hub.Size = UDim2.new(1,0,1,0)
-hub.BackgroundTransparency = 1
-hub.Parent = hubContainer
+-- Botón Minimizado (JH) - CUADRADO Y ARRIBA A LA IZQUIERDA
+local openBtn = Instance.new("TextButton")
+openBtn.Name = "OpenButton"
+openBtn.Size = UDim2.new(0,50,0,50)
+openBtn.Position = UDim2.new(0,15,0,15) -- Esquina superior izquierda
+openBtn.BackgroundColor3 = Color3.fromRGB(22,25,32)
+openBtn.Text = "JH"
+openBtn.Font = Enum.Font.GothamBold
+openBtn.TextSize = 18
+openBtn.TextColor3 = Color3.fromRGB(120,190,255)
+openBtn.Visible = false
+openBtn.Parent = gui
 
--- Top bar
+local btnCorner = Instance.new("UICorner")
+btnCorner.CornerRadius = UDim.new(0,8) -- Cuadrado con bordes suaves
+btnCorner.Parent = openBtn
+
+local btnStroke = Instance.new("UIStroke")
+btnStroke.Color = Color3.fromRGB(120,190,255)
+btnStroke.Thickness = 2
+btnStroke.Parent = openBtn
+
+-- Top bar (Draggable)
 local top = Instance.new("Frame")
 top.Size = UDim2.new(1,0,0,40)
 top.BackgroundColor3 = Color3.fromRGB(22,25,32)
-top.Parent = hub
+top.Parent = hubContainer
 
 local topCorner = Instance.new("UICorner")
-topCorner.CornerRadius = UDim.new(0,20)
+topCorner.CornerRadius = UDim.new(0,10)
 topCorner.Parent = top
 
 local title = Instance.new("TextLabel")
@@ -49,368 +66,288 @@ title.TextXAlignment = Enum.TextXAlignment.Left
 title.TextColor3 = Color3.fromRGB(120,190,255)
 title.Parent = top
 
--- Botón minimizar
 local close = Instance.new("TextButton")
 close.Size = UDim2.new(0,30,0,30)
 close.Position = UDim2.new(1,-35,0,5)
 close.Text = "–"
 close.Font = Enum.Font.GothamBold
-close.TextSize = 14
+close.TextSize = 20
 close.TextColor3 = Color3.fromRGB(255,100,100)
 close.BackgroundTransparency = 1
 close.Parent = top
 
--- Drag hub
-local dragging, dragStart, startPos = false, nil, nil
-top.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 then
-		dragging = true
-		dragStart = input.Position
-		startPos = hubContainer.Position
-	end
+-- Lógica para arrastrar (Hub y Botón JH)
+local function makeDraggable(obj, handle)
+    local dragging, dragStart, startPos
+    handle.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            dragStart = input.Position
+            startPos = obj.Position
+        end
+    end)
+    UIS.InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            local delta = input.Position - dragStart
+            obj.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+    UIS.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
+    end)
+end
+
+makeDraggable(hubContainer, top)
+makeDraggable(openBtn, openBtn)
+
+-- Lógica de Visibilidad (Minimizar/Maximizar)
+local function toggleUI()
+    if hubContainer.Visible then
+        hubContainer.Visible = false
+        openBtn.Visible = true
+    else
+        hubContainer.Visible = true
+        openBtn.Visible = false
+    end
+end
+
+close.MouseButton1Click:Connect(toggleUI)
+openBtn.MouseButton1Click:Connect(toggleUI)
+
+UIS.InputBegan:Connect(function(input, processed)
+    if not processed and input.KeyCode == Enum.KeyCode.Z then
+        toggleUI()
+    end
 end)
 
-UIS.InputChanged:Connect(function(input)
-	if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-		local delta = input.Position - dragStart
-		hubContainer.Position = UDim2.new(
-			startPos.X.Scale,
-			startPos.X.Offset + delta.X,
-			startPos.Y.Scale,
-			startPos.Y.Offset + delta.Y
-		)
-	end
-end)
-
-UIS.InputEnded:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 then
-		dragging = false
-	end
-end)
-
--- Side panel
+-- === Menú Lateral ===
 local side = Instance.new("Frame")
 side.Size = UDim2.new(0,140,1,-40)
 side.Position = UDim2.new(0,0,0,40)
 side.BackgroundColor3 = Color3.fromRGB(15,17,22)
-side.Parent = hub
+side.Parent = hubContainer
 
-local tab = Instance.new("TextLabel")
-tab.Size = UDim2.new(1,0,0,40)
-tab.Text = "Main"
-tab.Font = Enum.Font.GothamBold
-tab.TextSize = 14
-tab.TextColor3 = Color3.fromRGB(120,190,255)
-tab.BackgroundTransparency = 1
-tab.Parent = side
+local sideList = Instance.new("UIListLayout")
+sideList.Parent = side
 
+-- === Panel Contenido ===
 local content = Instance.new("Frame")
 content.Size = UDim2.new(1,-140,1,-40)
 content.Position = UDim2.new(0,140,0,40)
-content.BackgroundColor3 = Color3.fromRGB(20,23,30)
-content.Parent = hub
+content.BackgroundTransparency = 1
+content.Parent = hubContainer
 
-local spacingButtons = 10 -- distancia entre botones
+-- === FUNCIONES DE CREACIÓN ===
+local function createTab(name)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1,0,0,45)
+    btn.Text = name
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 14
+    btn.TextColor3 = Color3.fromRGB(200,200,200)
+    btn.BackgroundColor3 = Color3.fromRGB(20,23,30)
+    btn.BorderSizePixel = 0
+    btn.Parent = side
 
--- === DUPE Button ===
-local dupe = Instance.new("TextButton")
-dupe.Size = UDim2.new(1,-30,0,45)
-dupe.Position = UDim2.new(0,15,0,0)
-dupe.Text = "DUPE"
-dupe.Font = Enum.Font.GothamBlack
-dupe.TextSize = 18
-dupe.TextColor3 = Color3.fromRGB(255,255,255)
-dupe.BackgroundColor3 = Color3.fromRGB(35,40,55)
-dupe.BorderSizePixel = 0
-dupe.AutoButtonColor = false
-dupe.Parent = content
+    local frame = Instance.new("ScrollingFrame")
+    frame.Size = UDim2.new(1,0,1,0)
+    frame.BackgroundTransparency = 1
+    frame.ScrollBarThickness = 2
+    frame.Visible = false
+    frame.Parent = content
+    
+    local list = Instance.new("UIListLayout")
+    list.Parent = frame
+    list.Padding = UDim.new(0,8)
+    list.HorizontalAlignment = Enum.HorizontalAlignment.Center
+    
+    local padding = Instance.new("UIPadding")
+    padding.Parent = frame
+    padding.PaddingTop = UDim.new(0,10)
 
-local dupeCorner = Instance.new("UICorner")
-dupeCorner.CornerRadius = UDim.new(0,10)
-dupeCorner.Parent = dupe
+    btn.MouseButton1Click:Connect(function()
+        for _, f in pairs(content:GetChildren()) do if f:IsA("ScrollingFrame") then f.Visible = false end end
+        for _, b in pairs(side:GetChildren()) do if b:IsA("TextButton") then b.TextColor3 = Color3.fromRGB(200,200,200) end end
+        frame.Visible = true
+        btn.TextColor3 = Color3.fromRGB(120,190,255)
+    end)
 
-dupe.MouseEnter:Connect(function()
-	TweenService:Create(dupe, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(60,120,255), Size = UDim2.new(1,-25,0,50)}):Play()
-end)
-dupe.MouseLeave:Connect(function()
-	TweenService:Create(dupe, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(35,40,55), Size = UDim2.new(1,-30,0,45)}):Play()
-end)
+    return btn, frame
+end
 
-dupe.MouseButton1Click:Connect(function()
-	local char = player.Character
-	if not char then return end
-	local tool = char:FindFirstChildOfClass("Tool")
-	if tool then
-		local clone = tool:Clone()
-		for _, obj in pairs(clone:GetDescendants()) do
-			if obj:IsA("Script") or obj:IsA("LocalScript") or obj:IsA("ModuleScript") then
-				obj:Destroy()
-			end
-		end
-		clone.Parent = player.Backpack
-		local highlight = Instance.new("Highlight")
-		highlight.Adornee = clone:FindFirstChildWhichIsA("BasePart") or clone
-		highlight.FillColor = Color3.fromRGB(100,200,255)
-		highlight.FillTransparency = 0.5
-		highlight.OutlineTransparency = 1
-		highlight.Parent = clone
-		print("Brainroot duplicado (solo visual)")
-	else
-		print("No tienes ninguna tool equipada")
-	end
-end)
+local function createButton(parent, text)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0.9,0,0,40)
+    btn.Text = text
+    btn.Font = Enum.Font.GothamSemibold
+    btn.TextSize = 14
+    btn.TextColor3 = Color3.fromRGB(255,255,255)
+    btn.BackgroundColor3 = Color3.fromRGB(35,40,55)
+    btn.BorderSizePixel = 0
+    btn.Parent = parent
 
--- === TELEPORT Button ===
-local tpButton = Instance.new("TextButton")
-tpButton.Size = dupe.Size
-tpButton.Position = UDim2.new(0,15,0,dupe.Position.Y.Offset + dupe.Size.Y.Offset + spacingButtons)
-tpButton.Text = "TELEPORT"
-tpButton.Font = Enum.Font.GothamBlack
-tpButton.TextSize = 18
-tpButton.TextColor3 = Color3.fromRGB(255,255,255)
-tpButton.BackgroundColor3 = Color3.fromRGB(35,40,55)
-tpButton.BorderSizePixel = 0
-tpButton.AutoButtonColor = false
-tpButton.Parent = content
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0,8)
+    corner.Parent = btn
 
-local tpCorner = Instance.new("UICorner")
-tpCorner.CornerRadius = UDim.new(0,10)
-tpCorner.Parent = tpButton
+    btn.MouseEnter:Connect(function()
+        TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(60,120,255)}):Play()
+    end)
+    btn.MouseLeave:Connect(function()
+        TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(35,40,55)}):Play()
+    end)
+    
+    return btn
+end
 
-tpButton.MouseEnter:Connect(function()
-	TweenService:Create(tpButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(60,120,255), Size = UDim2.new(1,-25,0,50)}):Play()
-end)
-tpButton.MouseLeave:Connect(function()
-	TweenService:Create(tpButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(35,40,55), Size = UDim2.new(1,-30,0,45)}):Play()
-end)
+-- === TABS ===
+local mainBtn, mainContent = createTab("MAIN")
+local playerBtn, playerContent = createTab("PLAYER")
+mainContent.Visible = true
 
--- === TELEPORT Areas ===
+-- === BOTONES MAIN ===
+local dupeBtn = createButton(mainContent, "DUPE TOOL")
+local antiBtn = createButton(mainContent, "ANTI-AFK: ON")
+
+-- === BOTONES PLAYER ===
+local tpBtn = createButton(playerContent, "TELEPORTS ↓")
+local flyBtn = createButton(playerContent, "FLY: OFF")
+local speedBtn = createButton(playerContent, "SPEED BOOST: 16")
+local infBtn = createButton(playerContent, "INFINITE JUMP: OFF")
+
+-- === SUB-PESTAÑA TELEPORTS ===
+local areaPanel = Instance.new("Frame")
+areaPanel.Size = UDim2.new(0.9,0,0,0)
+areaPanel.BackgroundColor3 = Color3.fromRGB(25,28,35)
+areaPanel.ClipsDescendants = true
+areaPanel.Parent = playerContent
+areaPanel.LayoutOrder = 1 
+
+local areaList = Instance.new("UIListLayout")
+areaList.Parent = areaPanel
+areaList.Padding = UDim.new(0,3)
+
 local areas = {
-    {name="Common",     pos=Vector3.new(206,  -2.70, 0), color=Color3.fromRGB(160,160,160)},
-    {name="Uncommon",   pos=Vector3.new(290,  -2.70, 0), color=Color3.fromRGB(80,255,120)},
-    {name="Rare",       pos=Vector3.new(404,  -2.70, 0), color=Color3.fromRGB(0,170,255)},
-    {name="Epic",       pos=Vector3.new(548,  -2.70, 0), color=Color3.fromRGB(180,100,255)},
-    {name="Legendary",  pos=Vector3.new(762,  -2.70, 0), color=Color3.fromRGB(255,215,80)},
-    {name="Mythic",     pos=Vector3.new(1084, -2.70, 0), color=Color3.fromRGB(255,150,200)},
-    {name="Cosmic",     pos=Vector3.new(1574, -2.70, 0), color=Color3.fromRGB(120,0,180)},
-    {name="Secret",     pos=Vector3.new(2279, -2.70, 0), color=Color3.fromRGB(255,60,60)},
-    {name="Celestial",  pos=Vector3.new(2634, -2.70, 0), color=Color3.fromRGB(200,60,140)},
+    {name="Common Area", pos=Vector3.new(206,-2.7,0)},
+    {name="Rare Area", pos=Vector3.new(404,-2.7,0)},
+    {name="Legendary Area", pos=Vector3.new(762,-2.7,0)},
+    {name="Secret Area", pos=Vector3.new(2279,-2.7,0)},
+    {name="Mythic Area", pos=Vector3.new(1084,-2.7,0)},
+    {name="Cosmic Area", pos=Vector3.new(1574,-2.7,0)},
+    {name="Celestial Area", pos=Vector3.new(2634,-2.7,0)},
 }
 
-local areaPanel = Instance.new("Frame")
-areaPanel.Parent = content
-areaPanel.Size = UDim2.new(1,-30,0,0)
-areaPanel.Position = UDim2.new(0,15,0,tpButton.Position.Y.Offset + tpButton.Size.Y.Offset + spacingButtons)
-areaPanel.BackgroundColor3 = Color3.fromRGB(0,0,0)
-areaPanel.BorderSizePixel = 0
-areaPanel.ClipsDescendants = true
-areaPanel.ZIndex = 2
-
-local areaButtons = {}
-local buttonHeight = 28
-local spacing = 3
-
-for i, area in ipairs(areas) do
-	local btn = Instance.new("TextButton")
-	btn.Parent = areaPanel
-	btn.Size = UDim2.new(1,0,0,buttonHeight)
-	btn.Position = UDim2.new(0,0,0,(i-1)*(buttonHeight + spacing))
-	btn.Text = area.name:upper()
-	btn.Font = Enum.Font.Gotham
-	btn.TextSize = 14
-	btn.TextColor3 = area.color
-	btn.BackgroundColor3 = Color3.fromRGB(20,20,20)
-	btn.BorderSizePixel = 0
-	btn.AutoButtonColor = false
-	btn.ZIndex = 2
-
-	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(0,6)
-	corner.Parent = btn
-
-	local stroke = Instance.new("UIStroke")
-	stroke.Parent = btn
-	stroke.Thickness = 1
-	stroke.Color = area.color
-	stroke.Transparency = 0.4
-
-	btn.MouseEnter:Connect(function()
-		stroke.Transparency = 0
-		btn.BackgroundColor3 = Color3.fromRGB(35,35,50)
-	end)
-	btn.MouseLeave:Connect(function()
-		stroke.Transparency = 0.4
-		btn.BackgroundColor3 = Color3.fromRGB(20,20,20)
-	end)
-
-	btn.MouseButton1Click:Connect(function()
-		local char = player.Character or player.CharacterAdded:Wait()
-		local hrp = char:WaitForChild("HumanoidRootPart")
-		hrp.CFrame = CFrame.new(area.pos)
-	end)
-
-	table.insert(areaButtons, btn)
+for _, data in ipairs(areas) do
+    local b = Instance.new("TextButton")
+    b.Size = UDim2.new(1,0,0,30)
+    b.BackgroundColor3 = Color3.fromRGB(45,50,65)
+    b.TextColor3 = Color3.new(1,1,1)
+    b.Font = Enum.Font.Gotham
+    b.TextSize = 12
+    b.Text = data.name
+    b.Parent = areaPanel
+    Instance.new("UICorner", b)
+    
+    b.MouseButton1Click:Connect(function()
+        if player.Character then player.Character.HumanoidRootPart.CFrame = CFrame.new(data.pos) end
+    end)
 end
 
-local areaVisible = false
-tpButton.MouseButton1Click:Connect(function()
-	areaVisible = not areaVisible
-	local targetHeight = areaVisible and (#areas * (buttonHeight + spacing)) or 0
-	TweenService:Create(areaPanel, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = UDim2.new(1,-30,0,targetHeight)}):Play()
+local areaOpen = false
+tpBtn.MouseButton1Click:Connect(function()
+    areaOpen = not areaOpen
+    local targetSize = areaOpen and (#areas * 33) or 0
+    TweenService:Create(areaPanel, TweenInfo.new(0.3), {Size = UDim2.new(0.9,0,0,targetSize)}):Play()
+    tpBtn.Text = areaOpen and "TELEPORTS ↑" or "TELEPORTS ↓"
 end)
 
--- === MINIMIZAR HUB ===
-local minimizedButton
-local function createMinimizedButton()
-	if minimizedButton then return end
-	minimizedButton = Instance.new("TextButton")
-	minimizedButton.Size = UDim2.new(0,60,0,40)
-	minimizedButton.Position = UDim2.new(0,10,0,10)
-	minimizedButton.Text = "JH"
-	minimizedButton.Font = Enum.Font.GothamBold
-	minimizedButton.TextSize = 16
-	minimizedButton.TextColor3 = Color3.fromRGB(255,255,255)
-	minimizedButton.BackgroundColor3 = Color3.fromRGB(35,40,55)
-	minimizedButton.BorderSizePixel = 0
-	minimizedButton.Parent = gui
+-- === LÓGICA SPEED BOOST (40, 100, 300) ===
+local speedOptions = {16, 40, 100, 300}
+local currentIdx = 1
 
-	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(0,10)
-	corner.Parent = minimizedButton
-
-	minimizedButton.MouseButton1Click:Connect(function()
-		hubContainer.Visible = true
-		hubContainer.Size = UDim2.new(0,500,0,330)
-		minimizedButton:Destroy()
-		minimizedButton = nil
-	end)
-end
-
-local function minimizeHub()
-	hubContainer.Visible = false
-	createMinimizedButton()
-end
-
-close.MouseButton1Click:Connect(minimizeHub)
-UIS.InputBegan:Connect(function(input, gameProcessed)
-	if gameProcessed then return end
-	if input.KeyCode == Enum.KeyCode.Z then
-		if hubContainer.Visible then
-			minimizeHub()
-		else
-			if minimizedButton then
-				hubContainer.Visible = true
-				hubContainer.Size = UDim2.new(0,500,0,330)
-				minimizedButton:Destroy()
-				minimizedButton = nil
-			end
-		end
-	end
+speedBtn.MouseButton1Click:Connect(function()
+    currentIdx = currentIdx + 1
+    if currentIdx > #speedOptions then currentIdx = 1 end
+    
+    local newSpeed = speedOptions[currentIdx]
+    if player.Character and player.Character:FindFirstChild("Humanoid") then
+        player.Character.Humanoid.WalkSpeed = newSpeed
+    end
+    speedBtn.Text = "SPEED BOOST: "..newSpeed
 end)
 
--- === ANTI-AFK Futurista ===
-local antiAFKEnabled = true
-local antiAFKGui, antiAFKFrame, antiAFKCircle, antiAFKLabel
+-- === LÓGICA DE VUELO (FLY) ===
+local flying = false
+local flySpeed = 150
+local bv, bg
 
-local function createAntiAFKGui()
-	if antiAFKGui then return end
-	antiAFKGui = Instance.new("ScreenGui")
-	antiAFKGui.Name = "AntiAFKGui"
-	antiAFKGui.ResetOnSpawn = false
-	antiAFKGui.Parent = player:WaitForChild("PlayerGui")
-
-	antiAFKFrame = Instance.new("Frame")
-	antiAFKFrame.Size = UDim2.new(0,220,0,30)
-	antiAFKFrame.Position = UDim2.new(0.5,-110,0,10)
-	antiAFKFrame.BackgroundColor3 = Color3.fromRGB(20,20,20)
-	antiAFKFrame.BorderSizePixel = 0
-	antiAFKFrame.Parent = antiAFKGui
-
-	local frameCorner = Instance.new("UICorner")
-	frameCorner.CornerRadius = UDim.new(0,10)
-	frameCorner.Parent = antiAFKFrame
-
-	antiAFKCircle = Instance.new("Frame")
-	antiAFKCircle.Size = UDim2.new(0,16,0,16)
-	antiAFKCircle.Position = UDim2.new(0,8,0.5,-8)
-	antiAFKCircle.BackgroundColor3 = Color3.fromRGB(0,170,255)
-	antiAFKCircle.BorderSizePixel = 0
-	antiAFKCircle.Parent = antiAFKFrame
-
-	local circleCorner = Instance.new("UICorner")
-	circleCorner.CornerRadius = UDim.new(1,0)
-	circleCorner.Parent = antiAFKCircle
-
-	local glow = Instance.new("UIStroke")
-	glow.Parent = antiAFKCircle
-	glow.Color = Color3.fromRGB(0,255,255)
-	glow.Thickness = 2
-	glow.Transparency = 0.3
-
-	antiAFKLabel = Instance.new("TextLabel")
-	antiAFKLabel.Size = UDim2.new(1,-32,1,0)
-	antiAFKLabel.Position = UDim2.new(0,28,0,0)
-	antiAFKLabel.BackgroundTransparency = 1
-	antiAFKLabel.TextColor3 = Color3.fromRGB(0,170,255)
-	antiAFKLabel.Font = Enum.Font.GothamBold
-	antiAFKLabel.TextSize = 14
-	antiAFKLabel.TextXAlignment = Enum.TextXAlignment.Left
-	antiAFKLabel.TextStrokeTransparency = 0.5
-	antiAFKLabel.Parent = antiAFKFrame
-end
-
-local function updateAntiGUI()
-	if antiAFKEnabled then
-		antiAFKLabel.Text = "ANTI-AFK ACTIVO"
-		antiAFKCircle.BackgroundColor3 = Color3.fromRGB(0,170,255)
-		antiAFKLabel.TextColor3 = Color3.fromRGB(0,170,255)
-	else
-		antiAFKLabel.Text = "ANTI-AFK INACTIVO"
-		antiAFKCircle.BackgroundColor3 = Color3.fromRGB(255,0,0)
-		antiAFKLabel.TextColor3 = Color3.fromRGB(255,0,0)
-	end
-end
-
-createAntiAFKGui()
-updateAntiGUI()
-
--- Botón Anti-AFK justo debajo del TP
-local antiButton = Instance.new("TextButton")
-antiButton.Size = dupe.Size
-antiButton.Position = UDim2.new(0,15,0,tpButton.Position.Y.Offset + tpButton.Size.Y.Offset + spacingButtons)
-antiButton.Text = "ANTI-AFK"
-antiButton.Font = Enum.Font.GothamBlack
-antiButton.TextSize = 18
-antiButton.TextColor3 = Color3.fromRGB(255,255,255)
-antiButton.BackgroundColor3 = Color3.fromRGB(35,40,55)
-antiButton.BorderSizePixel = 0
-antiButton.AutoButtonColor = false
-antiButton.Parent = content
-
-local antiCorner = Instance.new("UICorner")
-antiCorner.CornerRadius = UDim.new(0,10)
-antiCorner.Parent = antiButton
-
-antiButton.MouseEnter:Connect(function()
-	TweenService:Create(antiButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(60,120,255), Size = UDim2.new(1,-25,0,50)}):Play()
-end)
-antiButton.MouseLeave:Connect(function()
-	TweenService:Create(antiButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(35,40,55), Size = UDim2.new(1,-30,0,45)}):Play()
+flyBtn.MouseButton1Click:Connect(function()
+    flying = not flying
+    flyBtn.Text = "FLY: "..(flying and "ON" or "OFF")
+    
+    local char = player.Character
+    if not char then return end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    
+    if flying then
+        bv = Instance.new("BodyVelocity", hrp)
+        bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+        bv.Velocity = Vector3.new(0,0,0)
+        
+        bg = Instance.new("BodyGyro", hrp)
+        bg.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+        bg.CFrame = hrp.CFrame
+    else
+        if bv then bv:Destroy() end
+        if bg then bg:Destroy() end
+    end
 end)
 
-antiButton.MouseButton1Click:Connect(function()
-	antiAFKEnabled = not antiAFKEnabled
-	updateAntiGUI()
+RunService.RenderStepped:Connect(function()
+    if flying and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+        local hrp = player.Character.HumanoidRootPart
+        local cam = workspace.CurrentCamera
+        local dir = Vector3.new()
+        
+        if UIS:IsKeyDown(Enum.KeyCode.W) then dir += cam.CFrame.LookVector end
+        if UIS:IsKeyDown(Enum.KeyCode.S) then dir -= cam.CFrame.LookVector end
+        if UIS:IsKeyDown(Enum.KeyCode.A) then dir -= cam.CFrame.RightVector end
+        if UIS:IsKeyDown(Enum.KeyCode.D) then dir += cam.CFrame.RightVector end
+        if UIS:IsKeyDown(Enum.KeyCode.Space) then dir += Vector3.new(0,1,0) end
+        if UIS:IsKeyDown(Enum.KeyCode.LeftShift) then dir -= Vector3.new(0,1,0) end
+        
+        bv.Velocity = (dir.Magnitude > 0 and dir.Unit * flySpeed) or Vector3.new(0,0,0)
+        bg.CFrame = cam.CFrame
+    end
 end)
 
--- Anti-AFK loop
-spawn(function()
-	while true do
-		if antiAFKEnabled then
-			local VirtualUser = game:GetService("VirtualUser")
-			VirtualUser:CaptureController()
-			VirtualUser:ClickButton2(Vector2.new())
-		end
-		wait(30)
-	end
+-- === OTRAS FUNCIONES ===
+-- Anti-AFK
+local antiAFK = true
+antiBtn.MouseButton1Click:Connect(function()
+    antiAFK = not antiAFK
+    antiBtn.Text = "ANTI-AFK: "..(antiAFK and "ON" or "OFF")
+end)
+
+player.Idled:Connect(function()
+    if antiAFK then game:GetService("VirtualUser"):CaptureController(); game:GetService("VirtualUser"):ClickButton2(Vector2.new()) end
+end)
+
+-- Infinite Jump
+local infJ = false
+infBtn.MouseButton1Click:Connect(function() infJ = not infJ; infBtn.Text = "INFINITE JUMP: "..(infJ and "ON" or "OFF") end)
+UIS.JumpRequest:Connect(function()
+    if infJ and player.Character then player.Character:FindFirstChildOfClass("Humanoid"):ChangeState(3) end
+end)
+
+-- Dupe
+dupeBtn.MouseButton1Click:Connect(function()
+    local tool = player.Character and player.Character:FindFirstChildOfClass("Tool")
+    if tool then tool:Clone().Parent = player.Backpack end
+end)
+
+-- Actualizar CanvasSize para los Scrolls
+RunService.Heartbeat:Connect(function()
+    mainContent.CanvasSize = UDim2.new(0,0,0, mainContent.UIListLayout.AbsoluteContentSize.Y + 20)
+    playerContent.CanvasSize = UDim2.new(0,0,0, playerContent.UIListLayout.AbsoluteContentSize.Y + 20)
 end)
